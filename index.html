@@ -3,18 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bode Plot - Two-Stage RC Low-Pass Filter</title>
+    <title>Bode Plot - Two-Stage RC Filter (Slider Version)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        /* --- STILE CSS (Scuro e Moderno) --- */
         :root {
             --bg: #121214;
             --card: #1a1a1e;
             --text: #e1e1e6;
-            --accent: #00b4d8;
+            --accent: #00b4d8; /* Turchese */
             --border: #29292e;
+            --slider-track: #202024;
         }
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             background-color: var(--bg);
             color: var(--text);
             margin: 0;
@@ -22,6 +24,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-height: 100vh;
         }
         .container {
             background: var(--card);
@@ -29,34 +32,98 @@
             border-radius: 12px;
             padding: 24px;
             width: 100%;
-            max-width: 900px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            max-width: 950px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
         }
-        h1 { margin-top: 0; color: var(--accent); font-size: 1.6rem; text-align: center; }
-        .grid {
+        h1 { margin-top: 0; color: var(--accent); font-size: 1.7rem; text-align: center; margin-bottom: 30px; }
+        
+        /* Layout controlli */
+        .controls-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: rgba(0,0,0,0.1);
+            border-radius: 8px;
         }
-        .input-group {
+        
+        .control-item {
             display: flex;
             flex-direction: column;
+            gap: 8px;
         }
-        label { font-size: 0.85rem; color: #a4a4a8; margin-bottom: 6px; }
-        input {
-            background: #202024;
+
+        .label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: #a4a4a8;
+        }
+
+        .current-value {
+            color: var(--accent);
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        /* Stile Slider personalizzato */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+
+        input[type=range]:focus { outline: none; }
+
+        /* Traccia dello slider */
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            background: var(--slider-track);
+            border-radius: 4px;
             border: 1px solid var(--border);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 1rem;
         }
-        input:focus { border-color: var(--accent); outline: none; }
+        /* Cursore dello slider */
+        input[type=range]::-webkit-slider-thumb {
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -7px; /* Centra il cursore sulla traccia */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            transition: background 0.2s, transform 0.2s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            background: #fff;
+            transform: scale(1.1);
+        }
+
+        /* Per Firefox */
+        input[type=range]::-moz-range-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            background: var(--slider-track);
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+        input[type=range]::-moz-range-thumb {
+            height: 18px;
+            width: 18px;
+            border: none;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+        }
+
+        /* Contenitore grafico */
         .chart-container {
             position: relative;
-            margin-bottom: 20px;
-            height: 400px;
+            height: 450px;
             width: 100%;
         }
     </style>
@@ -66,22 +133,37 @@
 <div class="container">
     <h1>Two-Stage RC Low-Pass Filter Bode Plot</h1>
     
-    <div class="grid">
-        <div class="input-group">
-            <label>R1 (Ω)</label>
-            <input type="number" id="r1" value="1000" oninput="updatePlot()">
+    <div class="controls-grid">
+        <div class="control-item">
+            <div class="label-row">
+                <label for="r1">R1 (Resistenza 1)</label>
+                <span class="current-value"><span id="r1-val">1000</span> Ω</span>
+            </div>
+            <input type="range" id="r1" min="100" max="100000" step="100" value="1000" oninput="updatePlot()">
         </div>
-        <div class="input-group">
-            <label>C1 (µF)</label>
-            <input type="number" id="c1" value="0.1" step="0.01" oninput="updatePlot()">
+
+        <div class="control-item">
+            <div class="label-row">
+                <label for="c1">C1 (Capacità 1)</label>
+                <span class="current-value"><span id="c1-val">0.10</span> µF</span>
+            </div>
+            <input type="range" id="c1" min="0.01" max="10" step="0.01" value="0.1" oninput="updatePlot()">
         </div>
-        <div class="input-group">
-            <label>R2 (Ω)</label>
-            <input type="number" id="r2" value="1000" oninput="updatePlot()">
+
+        <div class="control-item">
+            <div class="label-row">
+                <label for="r2">R2 (Resistenza 2)</label>
+                <span class="current-value"><span id="r2-val">1000</span> Ω</span>
+            </div>
+            <input type="range" id="r2" min="100" max="100000" step="100" value="1000" oninput="updatePlot()">
         </div>
-        <div class="input-group">
-            <label>C2 (µF)</label>
-            <input type="number" id="c2" value="0.1" step="0.01" oninput="updatePlot()">
+
+        <div class="control-item">
+            <div class="label-row">
+                <label for="c2">C2 (Capacità 2)</label>
+                <span class="current-value"><span id="c2-val">0.10</span> µF</span>
+            </div>
+            <input type="range" id="c2" min="0.01" max="10" step="0.01" value="0.1" oninput="updatePlot()">
         </div>
     </div>
 
@@ -91,23 +173,55 @@
 </div>
 
 <script>
+    // --- LOGICA JAVASCRIPT ---
     let chart;
 
-    function calculateBode() {
-        const R1 = parseFloat(document.getElementById('r1').value);
-        const C1 = parseFloat(document.getElementById('c1').value) * 1e-6;
-        const R2 = parseFloat(document.getElementById('r2').value);
-        const C2 = parseFloat(document.getElementById('c2').value) * 1e-6;
+    // Elementi DOM per leggere i valori e aggiornare le etichette
+    const inputs = {
+        r1: document.getElementById('r1'),
+        c1: document.getElementById('c1'),
+        r2: document.getElementById('r2'),
+        c2: document.getElementById('c2')
+    };
+    const displays = {
+        r1: document.getElementById('r1-val'),
+        c1: document.getElementById('c1-val'),
+        r2: document.getElementById('r2-val'),
+        c2: document.getElementById('c2-val')
+    };
+
+    function calculateBodeData() {
+        // Leggi valori dagli slider
+        const R1 = parseFloat(inputs.r1.value);
+        const C1 = parseFloat(inputs.c1.value) * 1e-6; // Converti µF in Farad
+        const R2 = parseFloat(inputs.r2.value);
+        const C2 = parseFloat(inputs.c2.value) * 1e-6; // Converti µF in Farad
+
+        // Aggiorna i numeri visualizzati nell'interfaccia
+        displays.r1.textContent = R1;
+        displays.c1.textContent = C1.value; // Mostra il valore dello slider
+        // Fix per mostrare sempre 2 decimali sulla capacità
+        displays.c1.textContent = parseFloat(inputs.c1.value).toFixed(2);
+        displays.r2.textContent = R2;
+        displays.c2.textContent = parseFloat(inputs.c2.value).toFixed(2);
 
         const dataPoints = [];
-        for (let i = 1; i <= 6; i += 0.05) {
+        // Genera 200 punti su scala logaritmica da 1 Hz a 1 MHz
+        for (let i = 0; i <= 6; i += 0.03) {
             const freq = Math.pow(10, i);
-            const w = 2 * Math.PI * freq;
+            const w = 2 * Math.PI * freq; // Frequenza angolare
 
-            const real = 1 - w*w * R1 * C1 * R2 * C2;
-            const imag = w * (R1 * C1 + R2 * C2 + R1 * C2);
-            const denomMag2 = real*real + imag*imag;
+            // Funzione di trasferimento complessa per filtro RC a 2 stadi (con effetto carico)
+            // H(s) = 1 / ( s^2(R1C1R2C2) + s(R1C1 + R2C2 + R1C2) + 1 )
+            const a = R1 * C1 * R2 * C2;
+            const b = (R1 * C1 + R2 * C2 + R1 * C2);
+            
+            // Reale e Immaginario del denominatore
+            const denomReal = 1 - w*w * a;
+            const denomImag = w * b;
+            const denomMag2 = denomReal*denomReal + denomImag*denomImag;
 
+            // Magnitudo e conversione in dB
             const mag = 1 / Math.sqrt(denomMag2);
             const db = 20 * Math.log10(mag);
 
@@ -116,50 +230,78 @@
         return dataPoints;
     }
 
+    // Funzione chiamata ad ogni movimento dello slider
     function updatePlot() {
-        const data = calculateBode();
-        chart.data.datasets[0].data = data;
-        chart.update();
+        if (chart) {
+            chart.data.datasets[0].data = calculateBodeData();
+            chart.update('none'); // Aggiorna senza animazioni per massima fluidità
+        }
     }
 
+    // --- Configurazione Iniziale Grafico Chart.js ---
     const ctx = document.getElementById('bodeChart').getContext('2d');
+    
+    // Crea gradiente per l'area sotto la curva
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, 'rgba(0, 180, 216, 0.2)');
+    gradient.addColorStop(1, 'rgba(0, 180, 216, 0)');
+
     chart = new Chart(ctx, {
         type: 'line',
         data: {
             datasets: [{
                 label: 'Magnitudo (dB)',
-                data: calculateBode(),
+                data: calculateBodeData(), // Calcola dati iniziali
                 borderColor: '#00b4d8',
-                borderWidth: 2,
-                pointRadius: 0,
-                fill: false
+                borderWidth: 3,
+                pointRadius: 0, // Nascondi i punti singoli
+                fill: true,
+                backgroundColor: gradient,
+                tension: 0.1 // Leggera curvatura
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false }, // Mostra tooltip all'avvicinarsi del mouse
             scales: {
                 x: {
-                    type: 'logarithmic',
-                    title: { display: true, text: 'Frequenza (Hz)', color: '#a4a4a8' },
+                    type: 'logarithmic', // Scala Logaritmica fondamentale per Bode
+                    title: { display: true, text: 'Frequenza (Hz)', color: '#a4a4a8', font: { size: 14 } },
                     ticks: {
                         color: '#a4a4a8',
                         callback: function(value) {
-                            if ([10, 100, 1000, 10000, 100000, 1000000].includes(value)) {
-                                return value >= 1000 ? (value/1000) + 'k' : value;
+                            // Etichette pulite per le decadi (1, 10, 100, 1k, 10k...)
+                            const ticks = [1, 10, 100, 1000, 10000, 100000, 1000000];
+                            if (ticks.includes(value)) {
+                                if (value >= 1000000) return '1M';
+                                if (value >= 1000) return (value/1000) + 'k';
+                                return value;
                             }
                         }
                     },
-                    grid: { color: '#29292e' }
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' }
                 },
                 y: {
-                    title: { display: true, text: 'Guadagno (dB)', color: '#a4a4a8' },
-                    ticks: { color: '#a4a4a8' },
-                    grid: { color: '#29292e' }
+                    title: { display: true, text: 'Guadagno (dB)', color: '#a4a4a8', font: { size: 14 } },
+                    min: -80, // Limite inferiore fisso per dare prospettiva
+                    max: 5,
+                    ticks: { color: '#a4a4a8', stepSize: 10 },
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' }
                 }
             },
             plugins: {
-                legend: { display: false }
+                legend: { display: false }, // Nascondi legenda
+                tooltip: {
+                    backgroundColor: '#1a1a1e',
+                    titleColor: '#00b4d8',
+                    bodyColor: '#e1e1e6',
+                    borderColor: '#29292e',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: (context) => ` ${context.parsed.y.toFixed(2)} dB`
+                    }
+                }
             }
         }
     });
