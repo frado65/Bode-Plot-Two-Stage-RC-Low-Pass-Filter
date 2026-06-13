@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bode Plot - Two-Stage RC Filter (Dual Input Version)</title>
+    <title>Bode Plot - Two-Stage RC Filter (Advanced Version)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -11,8 +11,10 @@
             --card: #1a1a1e;
             --text: #e1e1e6;
             --accent: #00b4d8;
+            --accent-secondary: #00f5d4;
             --border: #29292e;
             --slider-track: #202024;
+            --panel-bg: #22222a;
         }
         body {
             font-family: 'Segoe UI', system-ui, sans-serif;
@@ -46,6 +48,37 @@
             width: 100%;
         }
 
+        /* Pannello Risultati Calcoli */
+        .results-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 15px 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+            align-items: center;
+        }
+        .result-block {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .result-title {
+            font-size: 0.85rem;
+            color: #a4a4a8;
+        }
+        .result-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            font-family: monospace;
+            color: #fff;
+        }
+        .result-value.highlight {
+            color: var(--accent-secondary);
+            font-size: 1.3rem;
+        }
+
         /* Area Controlli in basso */
         .controls-grid {
             display: grid;
@@ -71,7 +104,6 @@
             color: #a4a4a8;
         }
 
-        /* Stile per l'input numerico diretto */
         .num-input {
             background: #202024;
             border: 1px solid var(--border);
@@ -85,20 +117,12 @@
             text-align: right;
         }
         .num-input:focus { border-color: var(--accent); outline: none; }
-
-        /* Rimuove le freccine standard degli input numerici */
-        .num-input::-webkit-inner-spin-button, 
-        .num-input::-webkit-outer-spin-button { 
-            -webkit-appearance: none; 
-            margin: 0; 
+        .num-input::-webkit-inner-spin-button, .num-input::-webkit-outer-spin-button { 
+            -webkit-appearance: none; margin: 0; 
         }
 
         /* Stile Slider */
-        input[type=range] {
-            -webkit-appearance: none;
-            width: 100%;
-            background: transparent;
-        }
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
         input[type=range]:focus { outline: none; }
         input[type=range]::-webkit-slider-runnable-track {
             width: 100%; height: 6px; cursor: pointer; background: var(--slider-track); border-radius: 3px; border: 1px solid var(--border);
@@ -108,7 +132,7 @@
         }
         input[type=range]::-webkit-slider-thumb:hover { background: #fff; }
         
-        /* Modifiche per Firefox */
+        /* Firefox */
         input[type=range]::-moz-range-track { width: 100%; height: 6px; cursor: pointer; background: var(--slider-track); border-radius: 3px; border: 1px solid var(--border); }
         input[type=range]::-moz-range-thumb { height: 16px; width: 16px; border: none; border-radius: 50%; background: var(--accent); cursor: pointer; }
     </style>
@@ -120,6 +144,21 @@
     
     <div class="chart-container">
         <canvas id="bodeChart"></canvas>
+    </div>
+
+    <div class="results-panel">
+        <div class="result-block">
+            <span class="result-title">Taglio Teorico Stadio 1 (fc1)</span>
+            <span class="result-value" id="fc1-display">0.00 Hz</span>
+        </div>
+        <div class="result-block">
+            <span class="result-title">Taglio Teorico Stadio 2 (fc2)</span>
+            <span class="result-value" id="fc2-display">0.00 Hz</span>
+        </div>
+        <div class="result-block">
+            <span class="result-title">Vera Banda Totale a -3 dB (f_3dB)</span>
+            <span class="result-value highlight" id="f3db-display">0.00 Hz</span>
+        </div>
     </div>
     
     <div class="controls-grid">
@@ -160,8 +199,13 @@
 <script>
     let chart;
 
-    // Funzione per sincronizzare Slider e Input Numerico in modo bidirezionale
-    // parametro: 'r1', 'c1', ecc. | sorgente: 'slide' o 'num'
+    const inputs = {
+        r1: document.getElementById('r1_slide'),
+        c1: document.getElementById('c1_slide'),
+        r2: document.getElementById('r2_slide'),
+        c2: document.getElementById('c2_slide')
+    };
+
     function syncInputs(param, source) {
         const slideInput = document.getElementById(`${param}_slide`);
         const numInput = document.getElementById(`${param}_num`);
@@ -169,7 +213,6 @@
         if (source === 'slide') {
             numInput.value = slideInput.value;
         } else {
-            // Se l'utente digita un valore fuori range, lo forziamo entro i limiti impostati nel min/max dello slider
             let val = parseFloat(numInput.value);
             const min = parseFloat(slideInput.min);
             const max = parseFloat(slideInput.max);
@@ -183,24 +226,47 @@
         updatePlot();
     }
 
-    function calculateBodeData() {
-        // Estraiamo i valori correnti direttamente dagli elementi sincronizzati
-        const R1 = parseFloat(document.getElementById('r1_slide').value);
-        const C1 = parseFloat(document.getElementById('c1_slide').value) * 1e-6;
-        const R2 = parseFloat(document.getElementById('r2_slide').value);
-        const C2 = parseFloat(document.getElementById('c2_slide').value) * 1e-6;
+    // Formatta la visualizzazione delle frequenze in Hz o kHz
+    function formatFrequency(hz) {
+        if (isNaN(hz) || !isFinite(hz)) return "0.00 Hz";
+        if (hz >= 1000) {
+            return (hz / 1000).toFixed(2) + " kHz";
+        }
+        return hz.toFixed(2) + " Hz";
+    }
 
+    function calculateBodeData() {
+        const R1 = parseFloat(inputs.r1.value);
+        const C1 = parseFloat(inputs.c1.value) * 1e-6;
+        const R2 = parseFloat(inputs.r2.value);
+        const C2 = parseFloat(inputs.c2.value) * 1e-6;
+
+        // 1. Calcolo frequenze di taglio dei singoli stadi
+        const fc1 = 1 / (2 * Math.PI * R1 * C1);
+        const fc2 = 1 / (2 * Math.PI * R2 * C2);
+
+        // 2. Calcolo analitico frequenza a -3dB complessiva
+        const A = R1 * C1 * R2 * C2;
+        const B = (R1 * C1 + R2 * C2 + R1 * C2);
+        
+        const term1 = -(B*B - 2*A);
+        const term2 = Math.sqrt(Math.pow(B*B - 2*A, 2) + 4*A*A);
+        const omega2 = (term1 + term2) / (2 * A*A);
+        const f3dB = Math.sqrt(omega2) / (2 * Math.PI);
+
+        // Aggiorna l'interfaccia utente con i calcoli aggiornati
+        document.getElementById('fc1-display').textContent = formatFrequency(fc1);
+        document.getElementById('fc2-display').textContent = formatFrequency(fc2);
+        document.getElementById('f3db-display').textContent = formatFrequency(f3dB);
+
+        // 3. Generazione punti grafico
         const dataPoints = [];
         for (let i = 0; i <= 6; i += 0.03) {
             const freq = Math.pow(10, i);
             const w = 2 * Math.PI * freq;
-
-            // Funzione di trasferimento complessa (Modello esatto a due stadi con carico)
-            const a = R1 * C1 * R2 * C2;
-            const b = (R1 * C1 + R2 * C2 + R1 * C2);
             
-            const denomReal = 1 - w*w * a;
-            const denomImag = w * b;
+            const denomReal = 1 - w*w * A;
+            const denomImag = w * B;
             const denomMag2 = denomReal*denomReal + denomImag*denomImag;
 
             const mag = 1 / Math.sqrt(denomMag2);
@@ -214,11 +280,11 @@
     function updatePlot() {
         if (chart) {
             chart.data.datasets[0].data = calculateBodeData();
-            chart.update('none'); // Aggiornamento immediato e fluido
+            chart.update('none');
         }
     }
 
-    // Configurazione Grafico Chart.js
+    // Configurazione Iniziale Chart.js
     const ctx = document.getElementById('bodeChart').getContext('2d');
     const gradient = ctx.createLinearGradient(0, 0, 0, 400);
     gradient.addColorStop(0, 'rgba(0, 180, 216, 0.2)');
