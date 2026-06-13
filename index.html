@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bode Plot - Two-Stage RC Filter (Professional Tool)</title>
+    <title>Bode Plot - Two-Stage RC Filter (Full Analysis)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
     <style>
         :root {
             --bg: #121214;
@@ -16,6 +17,13 @@
             --slider-track: #202024;
             --panel-bg: #22222a;
             --tooltip-bg: #323238;
+            
+            /* Colori per le linee del grafico e legende */
+            --col-fn1: #ff6b6b;
+            --col-fn2: #ff9f43;
+            --col-fp1: #f1c40f;
+            --col-fp2: #9b59b6;
+            --col-f3db: #00f5d4;
         }
         body {
             font-family: 'Segoe UI', system-ui, sans-serif;
@@ -44,11 +52,10 @@
         
         .chart-container {
             position: relative;
-            height: 400px;
+            height: 420px;
             width: 100%;
         }
 
-        /* Pannello dei risultati con Tooltip strutturati via CSS */
         .results-panel {
             background: var(--panel-bg);
             border: 1px solid var(--border);
@@ -79,7 +86,6 @@
             margin-bottom: 4px;
         }
         
-        /* Stile dei Tooltip */
         .result-item {
             display: flex;
             justify-content: space-between;
@@ -116,10 +122,15 @@
         }
 
         .result-title { font-size: 0.85rem; color: #a4a4a8; }
-        .result-value { font-size: 1.1rem; font-weight: bold; font-family: monospace; color: #fff; }
-        .result-value.highlight { color: var(--accent-secondary); font-size: 1.2rem; }
+        .result-value { font-size: 1.1rem; font-weight: bold; font-family: monospace; }
+        
+        /* Classi colore abbinate alle scritte e alle linee */
+        .color-fn1 { color: var(--col-fn1) !important; }
+        .color-fn2 { color: var(--col-fn2) !important; }
+        .color-fp1 { color: var(--col-fp1) !important; }
+        .color-fp2 { color: var(--col-fp2) !important; }
+        .color-f3db { color: var(--col-f3db) !important; font-size: 1.2rem; }
 
-        /* Controlli con Combo Unit */
         .controls-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
@@ -132,11 +143,7 @@
         .control-item { display: flex; flex-direction: column; gap: 8px; }
         .label-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; color: #a4a4a8; }
         
-        /* Input + Select adiacenti */
-        .input-combo-group {
-            display: flex;
-            gap: 4px;
-        }
+        .input-combo-group { display: flex; gap: 4px; }
         .num-input {
             background: #202024; border: 1px solid var(--border); color: var(--accent); padding: 6px 8px; border-radius: 4px 0 0 4px; width: 100%; font-family: monospace; font-weight: bold; font-size: 0.95rem; text-align: right; flex: 1;
         }
@@ -146,8 +153,6 @@
         .unit-select {
             background: #292930; border: 1px solid var(--border); color: #fff; padding: 6px 4px; border-radius: 0 4px 4px 0; font-size: 0.9rem; outline: none; cursor: pointer;
         }
-        .unit-select:focus { border-color: var(--accent); }
-
         input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
         input[type=range]:focus { outline: none; }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 6px; cursor: pointer; background: var(--slider-track); border-radius: 3px; border: 1px solid var(--border); }
@@ -171,15 +176,15 @@
             <span class="section-title">1) Freq. Nominali (Isolate)</span>
             <div class="result-item">
                 <span class="result-title tooltip-target">Filtro 1 f=1/(2πRC)
-                    <span class="tooltip-text">La frequenza di taglio puramente teorica del primo stadio calcolata isolatamente. Ignora sia l'effetto di carico sia la presenza del secondo filtro.</span>
+                    <span class="tooltip-text">Frequenza di taglio teorica del primo stadio calcolata isolatamente. [Linea Rossa]</span>
                 </span>
-                <span class="result-value" id="fn1-display">0.00 Hz</span>
+                <span class="result-value color-fn1" id="fn1-display">0.00 Hz</span>
             </div>
             <div class="result-item">
                 <span class="result-title tooltip-target">Filtro 2 f=1/(2πRC)
-                    <span class="tooltip-text">La frequenza di taglio teorica del secondo stadio calcolata isolatamente. Non tiene conto dell'impedenza di sorgente del primo filtro.</span>
+                    <span class="tooltip-text">Frequenza di taglio teorica del secondo stadio calcolata isolatamente. [Linea Arancione]</span>
                 </span>
-                <span class="result-value" id="fn2-display">0.00 Hz</span>
+                <span class="result-value color-fn2" id="fn2-display">0.00 Hz</span>
             </div>
         </div>
         
@@ -187,15 +192,15 @@
             <span class="section-title">2) Poli Reali (Intervento)</span>
             <div class="result-item">
                 <span class="result-title tooltip-target">Polo 1 (-20 dB/dec)
-                    <span class="tooltip-text">Frequenza del primo polo reale del sistema combinato. Rappresenta lo snodo esatto nel diagramma asintotico dove la pendenza del filtro inizia a scendere a -20 dB per decade.</span>
+                    <span class="tooltip-text">Frequenza del primo polo reale. Il punto esatto in cui la pendenza asintotica vira a -20 dB/decade. [Linea Gialla]</span>
                 </span>
-                <span class="result-value" id="fp1-display">0.00 Hz</span>
+                <span class="result-value color-fp1" id="fp1-display">0.00 Hz</span>
             </div>
             <div class="result-item">
                 <span class="result-title tooltip-target">Polo 2 (-40 dB/dec)
-                    <span class="tooltip-text">Frequenza del secondo polo reale. A questo punto d'intervento le due pendenze si sommano, portando la caduta totale del filtro a una pendenza ripida di -40 dB per decade.</span>
+                    <span class="tooltip-text">Frequenza del secondo polo reale. Il punto in cui interviene il secondo stadio, portando la pendenza totale a -40 dB/decade. [Linea Viola]</span>
                 </span>
-                <span class="result-value" id="fp2-display">0.00 Hz</span>
+                <span class="result-value color-fp2" id="fp2-display">0.00 Hz</span>
             </div>
         </div>
 
@@ -203,9 +208,9 @@
             <span class="section-title">3) Risposta Globale</span>
             <div class="result-item">
                 <span class="result-title tooltip-target">Banda a -3 dB reale
-                    <span class="tooltip-text">La vera ed effettiva banda passante del filtro completo. È la frequenza alla quale l'attenuazione complessiva interseca la linea dei -3 dB (potenza dimezzata all'uscita).</span>
+                    <span class="tooltip-text">La vera banda passante del filtro intero, dove il guadagno reale tocca esattamente i -3 dB. [Linea Verde Acqua]</span>
                 </span>
-                <span class="result-value highlight" id="f3db-display">0.00 Hz</span>
+                <span class="result-value color-f3db" id="f3db-display">0.00 Hz</span>
             </div>
         </div>
     </div>
@@ -291,7 +296,6 @@
     }
 
     function calculateBodeData() {
-        // Estrazione dei valori reali tenendo conto della moltiplicazione delle unità (combo)
         const R1 = parseFloat(elements.r1.num.value) * parseFloat(elements.r1.unit.value);
         const C1 = parseFloat(elements.c1.num.value) * parseFloat(elements.c1.unit.value);
         const R2 = parseFloat(elements.r2.num.value) * parseFloat(elements.r2.unit.value);
@@ -301,14 +305,12 @@
             return [];
         }
 
-        // 1) Frequenze nominali isolate
         const fn1 = 1 / (2 * Math.PI * R1 * C1);
         const fn2 = 1 / (2 * Math.PI * R2 * C2);
 
         const a = R1 * C1 * R2 * C2;
         const b = (R1 * C1 + R2 * C2 + R1 * C2);
 
-        // 2) Poli reali geometrici del sistema completo
         const disc = Math.sqrt(b*b - 4*a);
         const tau1 = (b + disc) / 2;
         const tau2 = (b - disc) / 2;
@@ -316,21 +318,29 @@
         const fp1 = 1 / (2 * Math.PI * tau1);
         const fp2 = 1 / (2 * Math.PI * tau2);
 
-        // 3) Frequenza reale a -3dB complessiva
         const term1 = -(b*b - 2*a);
         const term2 = Math.sqrt(Math.pow(b*b - 2*a, 2) + 4*a*a);
         const omega2 = (term1 + term2) / (2 * a*a);
         const f3dB = Math.sqrt(omega2) / (2 * Math.PI);
 
-        // Scrittura dati a video
+        // Aggiorna scritte
         document.getElementById('fn1-display').textContent = formatFrequency(fn1);
         document.getElementById('fn2-display').textContent = formatFrequency(fn2);
         document.getElementById('fp1-display').textContent = formatFrequency(fp1);
         document.getElementById('fp2-display').textContent = formatFrequency(fp2);
         document.getElementById('f3db-display').textContent = formatFrequency(f3dB);
 
+        // Aggiorna le posizioni delle linee verticali sul grafico
+        if (chart && chart.options.plugins.annotation) {
+            const annotations = chart.options.plugins.annotation.annotations;
+            annotations.lineFn1.value = fn1;
+            annotations.lineFn2.value = fn2;
+            annotations.lineFp1.value = fp1;
+            annotations.lineFp2.value = fp2;
+            annotations.lineF3dB.value = f3dB;
+        }
+
         const dataPoints = [];
-        // Distribuiamo 250 punti logaritmici da 1 Hz a 10 MHz per coprire scale più grandi (pF/nF)
         for (let i = 0; i <= 7; i += 0.03) {
             const freq = Math.pow(10, i);
             const w = 2 * Math.PI * freq;
@@ -352,14 +362,14 @@
             const newData = calculateBodeData();
             if (newData.length > 0) {
                 chart.data.datasets[0].data = newData;
-                chart.update('none');
+                chart.update('none'); // Aggiorna istantaneamente grafico e linee
             }
         }
     }
 
     const ctx = document.getElementById('bodeChart').getContext('2d');
     const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, 'rgba(0, 180, 216, 0.2)');
+    gradient.addColorStop(0, 'rgba(0, 180, 216, 0.15)');
     gradient.addColorStop(1, 'rgba(0, 180, 216, 0)');
 
     chart = new Chart(ctx, {
@@ -413,13 +423,24 @@
                     bodyColor: '#e1e1e6',
                     borderColor: '#29292e',
                     borderWidth: 1,
-                    callbacks: {
-                        label: (context) => ` ${context.parsed.y.toFixed(2)} dB`
+                    callbacks: { label: (context) => ` ${context.parsed.y.toFixed(2)} dB` }
+                },
+                // Configurazione delle 5 Linee Verticali Dinamiche
+                annotation: {
+                    annotations: {
+                        lineFn1: { type: 'line', scaleID: 'x', value: 0, borderColor: '#ff6b6b', borderWidth: 1.5, borderDash: [4, 4] },
+                        lineFn2: { type: 'line', scaleID: 'x', value: 0, borderColor: '#ff9f43', borderWidth: 1.5, borderDash: [4, 4] },
+                        lineFp1: { type: 'line', scaleID: 'x', value: 0, borderColor: '#f1c40f', borderWidth: 2, borderDash: [6, 3] },
+                        lineFp2: { type: 'line', scaleID: 'x', value: 0, borderColor: '#9b59b6', borderWidth: 2, borderDash: [6, 3] },
+                        lineF3dB: { type: 'line', scaleID: 'x', value: 0, borderColor: '#00f5d4', borderWidth: 2 }
                     }
                 }
             }
         }
     });
+
+    // Avvio iniziale per piazzare le linee al primo caricamento
+    calculateBodeData();
 </script>
 
 </body>
