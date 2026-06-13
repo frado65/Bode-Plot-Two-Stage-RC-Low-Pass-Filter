@@ -3,248 +3,167 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>La Mia Pagina Interattiva</title>
+    <title>Bode Plot - Two-Stage RC Low-Pass Filter</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* --- STILE CSS --- */
         :root {
-            --bg-color: #f4f7f6;
-            --card-bg: #ffffff;
-            --primary: #4f46e5;
-            --primary-hover: #4338ca;
-            --text: #1f2937;
-            --text-light: #6b7280;
-            --border: #e5e7eb;
+            --bg: #121214;
+            --card: #1a1a1e;
+            --text: #e1e1e6;
+            --accent: #00b4d8;
+            --border: #29292e;
         }
-
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg);
             color: var(--text);
             margin: 0;
-            padding: 0;
+            padding: 20px;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            min-height: 100vh;
         }
-
         .container {
-            background: var(--card-bg);
-            padding: 2.5rem;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
             width: 100%;
-            max-width: 450px;
-            transition: transform 0.3s ease;
+            max-width: 900px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
         }
-
-        h1 {
-            font-size: 1.8rem;
-            margin-top: 0;
-            color: var(--primary);
-            text-align: center;
+        h1 { margin-top: 0; color: var(--accent); font-size: 1.6rem; text-align: center; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
         }
-
-        p.subtitle {
-            color: var(--text-light);
-            text-align: center;
-            margin-bottom: 2rem;
-            font-size: 0.95rem;
-        }
-
-        /* Barra di progresso */
-        .progress-container {
-            background: var(--border);
-            border-radius: 8px;
-            height: 10px;
-            width: 100%;
-            margin-bottom: 1.5rem;
-            overflow: hidden;
-        }
-
-        .progress-bar {
-            background: var(--primary);
-            height: 100%;
-            width: 0%;
-            transition: width 0.4s ease;
-        }
-
-        /* Form di inserimento */
         .input-group {
             display: flex;
-            gap: 10px;
-            margin-bottom: 1.5rem;
+            flex-direction: column;
         }
-
-        input[type="text"] {
-            flex: 1;
-            padding: 0.75rem;
+        label { font-size: 0.85rem; color: #a4a4a8; margin-bottom: 6px; }
+        input {
+            background: #202024;
             border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 1rem;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        input[type="text"]:focus {
-            border-color: var(--primary);
-        }
-
-        button {
-            background: var(--primary);
             color: white;
-            border: none;
-            padding: 0.75rem 1.25rem;
-            border-radius: 8px;
+            padding: 8px 12px;
+            border-radius: 6px;
             font-size: 1rem;
-            cursor: pointer;
-            font-weight: 600;
-            transition: background 0.2s;
         }
-
-        button:hover {
-            background: var(--primary-hover);
-        }
-
-        /* Lista degli elementi */
-        ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            max-height: 250px;
-            overflow-y: auto;
-        }
-
-        li {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.75rem;
-            border-bottom: 1px solid var(--border);
-            animation: fadeIn 0.3s ease;
-        }
-
-        li:last-child {
-            border-bottom: none;
-        }
-
-        .task-text {
-            cursor: pointer;
-            flex: 1;
-            margin-left: 10px;
-            transition: all 0.2s;
-        }
-
-        .completed .task-text {
-            text-decoration: line-through;
-            color: var(--text-light);
-        }
-
-        .delete-btn {
-            background: transparent;
-            color: #ef4444;
-            padding: 4px 8px;
-            font-size: 0.85rem;
-        }
-        .delete-btn:hover {
-            background: #fee2e2;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        input:focus { border-color: var(--accent); outline: none; }
+        .chart-container {
+            position: relative;
+            margin-bottom: 20px;
+            height: 400px;
+            width: 100%;
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>I Miei Obiettivi</h1>
-        <p class="subtitle">Aggiungi elementi e cliccaci sopra per completarli</p>
-
-        <!-- Barra di progresso interattiva -->
-        <div class="progress-container">
-            <div class="progress-bar" id="progressBar"></div>
-        </div>
-
-        <!-- Input per nuovi elementi -->
+<div class="container">
+    <h1>Two-Stage RC Low-Pass Filter Bode Plot</h1>
+    
+    <div class="grid">
         <div class="input-group">
-            <input type="text" id="taskInput" placeholder="Cosa devi fare oggi?">
-            <button id="addBtn">Aggiungi</button>
+            <label>R1 (Ω)</label>
+            <input type="number" id="r1" value="1000" oninput="updatePlot()">
         </div>
-
-        <!-- Lista dinamica -->
-        <ul id="taskList"></ul>
+        <div class="input-group">
+            <label>C1 (µF)</label>
+            <input type="number" id="c1" value="0.1" step="0.01" oninput="updatePlot()">
+        </div>
+        <div class="input-group">
+            <label>R2 (Ω)</label>
+            <input type="number" id="r2" value="1000" oninput="updatePlot()">
+        </div>
+        <div class="input-group">
+            <label>C2 (µF)</label>
+            <input type="number" id="c2" value="0.1" step="0.01" oninput="updatePlot()">
+        </div>
     </div>
 
-    <script>
-        // --- LOGICA JAVASCRIPT ---
-        const taskInput = document.getElementById('taskInput');
-        const addBtn = document.getElementById('addBtn');
-        const taskList = document.getElementById('taskList');
-        const progressBar = document.getElementById('progressBar');
+    <div class="chart-container">
+        <canvas id="bodeChart"></canvas>
+    </div>
+</div>
 
-        let tasks = [];
+<script>
+    let chart;
 
-        // Funzione per aggiornare l'interfaccia e la barra di progresso
-        function updateUI() {
-            taskList.innerHTML = '';
-            
-            if (tasks.length === 0) {
-                progressBar.style.width = '0%';
-                return;
+    function calculateBode() {
+        const R1 = parseFloat(document.getElementById('r1').value);
+        const C1 = parseFloat(document.getElementById('c1').value) * 1e-6;
+        const R2 = parseFloat(document.getElementById('r2').value);
+        const C2 = parseFloat(document.getElementById('c2').value) * 1e-6;
+
+        const dataPoints = [];
+        for (let i = 1; i <= 6; i += 0.05) {
+            const freq = Math.pow(10, i);
+            const w = 2 * Math.PI * freq;
+
+            const real = 1 - w*w * R1 * C1 * R2 * C2;
+            const imag = w * (R1 * C1 + R2 * C2 + R1 * C2);
+            const denomMag2 = real*real + imag*imag;
+
+            const mag = 1 / Math.sqrt(denomMag2);
+            const db = 20 * Math.log10(mag);
+
+            dataPoints.push({ x: freq, y: db });
+        }
+        return dataPoints;
+    }
+
+    function updatePlot() {
+        const data = calculateBode();
+        chart.data.datasets[0].data = data;
+        chart.update();
+    }
+
+    const ctx = document.getElementById('bodeChart').getContext('2d');
+    chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            datasets: [{
+                label: 'Magnitudo (dB)',
+                data: calculateBode(),
+                borderColor: '#00b4d8',
+                borderWidth: 2,
+                pointRadius: 0,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    type: 'logarithmic',
+                    title: { display: true, text: 'Frequenza (Hz)', color: '#a4a4a8' },
+                    ticks: {
+                        color: '#a4a4a8',
+                        callback: function(value) {
+                            if ([10, 100, 1000, 10000, 100000, 1000000].includes(value)) {
+                                return value >= 1000 ? (value/1000) + 'k' : value;
+                            }
+                        }
+                    },
+                    grid: { color: '#29292e' }
+                },
+                y: {
+                    title: { display: true, text: 'Guadagno (dB)', color: '#a4a4a8' },
+                    ticks: { color: '#a4a4a8' },
+                    grid: { color: '#29292e' }
+                }
+            },
+            plugins: {
+                legend: { display: false }
             }
-
-            tasks.forEach((task, index) => {
-                const li = document.createElement('li');
-                if (task.completed) li.classList.add('completed');
-
-                li.innerHTML = `
-                    <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTask(${index})">
-                    <span class="task-text" onclick="toggleTask(${index})">${task.text}</span>
-                    <button class="delete-btn" onclick="deleteTask(${index})">Elimina</button>
-                `;
-                taskList.appendChild(li);
-            });
-
-            // Calcolo percentuale progresso
-            const completedCount = tasks.filter(t => t.completed).length;
-            const percentage = (completedCount / tasks.length) * 100;
-            progressBar.style.width = `${percentage}%`;
         }
+    });
+</script>
 
-        // Aggiungere un task
-        function addTask() {
-            const text = taskInput.value.trim();
-            if (text !== '') {
-                tasks.push({ text: text, completed: false });
-                taskInput.value = '';
-                updateUI();
-            }
-        }
-
-        // Invertire lo stato del task (completato / non completato)
-        function toggleTask(index) {
-            tasks[index].completed = !tasks[index].completed;
-            updateUI();
-        }
-
-        // Eliminare un task
-        function deleteTask(index) {
-            tasks.splice(index, 1);
-            updateUI();
-        }
-
-        // Event Listeners per i pulsanti e il tasto Invio
-        addBtn.addEventListener('click', addTask);
-        taskInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') addTask();
-        });
-
-        // Inizializzazione con due task di esempio
-        tasks.push({ text: "Esplorare GitHub Pages", completed: true });
-        tasks.push({ text: "Creare qualcosa di fantastico", completed: false });
-        updateUI();
-    </script>
 </body>
 </html>
