@@ -3,20 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bode Plot - Two-Stage RC Filter (Slider Version)</title>
+    <title>Bode Plot - Two-Stage RC Filter (Dual Input Version)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* --- STILE CSS (Scuro e Moderno) --- */
         :root {
             --bg: #121214;
             --card: #1a1a1e;
             --text: #e1e1e6;
-            --accent: #00b4d8; /* Turchese */
+            --accent: #00b4d8;
             --border: #29292e;
             --slider-track: #202024;
         }
         body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-family: 'Segoe UI', system-ui, sans-serif;
             background-color: var(--bg);
             color: var(--text);
             margin: 0;
@@ -34,18 +33,28 @@
             width: 100%;
             max-width: 950px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
         }
-        h1 { margin-top: 0; color: var(--accent); font-size: 1.7rem; text-align: center; margin-bottom: 30px; }
+        h1 { margin: 0; color: var(--accent); font-size: 1.6rem; text-align: center; }
         
-        /* Layout controlli */
+        /* Area Grafico in alto */
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+
+        /* Area Controlli in basso */
         .controls-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
-            margin-bottom: 30px;
-            padding: 15px;
-            background: rgba(0,0,0,0.1);
+            padding: 20px;
+            background: rgba(0,0,0,0.15);
             border-radius: 8px;
+            border: 1px solid var(--border);
         }
         
         .control-item {
@@ -57,75 +66,51 @@
         .label-row {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             font-size: 0.9rem;
             color: #a4a4a8;
         }
 
-        .current-value {
+        /* Stile per l'input numerico diretto */
+        .num-input {
+            background: #202024;
+            border: 1px solid var(--border);
             color: var(--accent);
+            padding: 4px 8px;
+            border-radius: 4px;
+            width: 80px;
             font-family: monospace;
             font-weight: bold;
+            font-size: 0.95rem;
+            text-align: right;
+        }
+        .num-input:focus { border-color: var(--accent); outline: none; }
+
+        /* Rimuove le freccine standard degli input numerici */
+        .num-input::-webkit-inner-spin-button, 
+        .num-input::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
         }
 
-        /* Stile Slider personalizzato */
+        /* Stile Slider */
         input[type=range] {
             -webkit-appearance: none;
             width: 100%;
             background: transparent;
         }
-
         input[type=range]:focus { outline: none; }
-
-        /* Traccia dello slider */
         input[type=range]::-webkit-slider-runnable-track {
-            width: 100%;
-            height: 8px;
-            cursor: pointer;
-            background: var(--slider-track);
-            border-radius: 4px;
-            border: 1px solid var(--border);
+            width: 100%; height: 6px; cursor: pointer; background: var(--slider-track); border-radius: 3px; border: 1px solid var(--border);
         }
-        /* Cursore dello slider */
         input[type=range]::-webkit-slider-thumb {
-            height: 20px;
-            width: 20px;
-            border-radius: 50%;
-            background: var(--accent);
-            cursor: pointer;
-            -webkit-appearance: none;
-            margin-top: -7px; /* Centra il cursore sulla traccia */
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-            transition: background 0.2s, transform 0.2s;
+            height: 18px; width: 18px; border-radius: 50%; background: var(--accent); cursor: pointer; -webkit-appearance: none; margin-top: -6px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); transition: background 0.1s;
         }
-        input[type=range]::-webkit-slider-thumb:hover {
-            background: #fff;
-            transform: scale(1.1);
-        }
-
-        /* Per Firefox */
-        input[type=range]::-moz-range-track {
-            width: 100%;
-            height: 8px;
-            cursor: pointer;
-            background: var(--slider-track);
-            border-radius: 4px;
-            border: 1px solid var(--border);
-        }
-        input[type=range]::-moz-range-thumb {
-            height: 18px;
-            width: 18px;
-            border: none;
-            border-radius: 50%;
-            background: var(--accent);
-            cursor: pointer;
-        }
-
-        /* Contenitore grafico */
-        .chart-container {
-            position: relative;
-            height: 450px;
-            width: 100%;
-        }
+        input[type=range]::-webkit-slider-thumb:hover { background: #fff; }
+        
+        /* Modifiche per Firefox */
+        input[type=range]::-moz-range-track { width: 100%; height: 6px; cursor: pointer; background: var(--slider-track); border-radius: 3px; border: 1px solid var(--border); }
+        input[type=range]::-moz-range-thumb { height: 16px; width: 16px; border: none; border-radius: 50%; background: var(--accent); cursor: pointer; }
     </style>
 </head>
 <body>
@@ -133,95 +118,91 @@
 <div class="container">
     <h1>Two-Stage RC Low-Pass Filter Bode Plot</h1>
     
+    <div class="chart-container">
+        <canvas id="bodeChart"></canvas>
+    </div>
+    
     <div class="controls-grid">
         <div class="control-item">
             <div class="label-row">
-                <label for="r1">R1 (Resistenza 1)</label>
-                <span class="current-value"><span id="r1-val">1000</span> Ω</span>
+                <label for="r1_slide">R1 (Ω)</label>
+                <input type="number" id="r1_num" class="num-input" value="1000" min="100" max="100000" oninput="syncInputs('r1', 'num')">
             </div>
-            <input type="range" id="r1" min="100" max="100000" step="100" value="1000" oninput="updatePlot()">
+            <input type="range" id="r1_slide" min="100" max="100000" step="100" value="1000" oninput="syncInputs('r1', 'slide')">
         </div>
 
         <div class="control-item">
             <div class="label-row">
-                <label for="c1">C1 (Capacità 1)</label>
-                <span class="current-value"><span id="c1-val">0.10</span> µF</span>
+                <label for="c1_slide">C1 (µF)</label>
+                <input type="number" id="c1_num" class="num-input" value="0.1" min="0.01" max="10" step="0.01" oninput="syncInputs('c1', 'num')">
             </div>
-            <input type="range" id="c1" min="0.01" max="10" step="0.01" value="0.1" oninput="updatePlot()">
+            <input type="range" id="c1_slide" min="0.01" max="10" step="0.01" value="0.1" oninput="syncInputs('c1', 'slide')">
         </div>
 
         <div class="control-item">
             <div class="label-row">
-                <label for="r2">R2 (Resistenza 2)</label>
-                <span class="current-value"><span id="r2-val">1000</span> Ω</span>
+                <label for="r2_slide">R2 (Ω)</label>
+                <input type="number" id="r2_num" class="num-input" value="1000" min="100" max="100000" oninput="syncInputs('r2', 'num')">
             </div>
-            <input type="range" id="r2" min="100" max="100000" step="100" value="1000" oninput="updatePlot()">
+            <input type="range" id="r2_slide" min="100" max="100000" step="100" value="1000" oninput="syncInputs('r2', 'slide')">
         </div>
 
         <div class="control-item">
             <div class="label-row">
-                <label for="c2">C2 (Capacità 2)</label>
-                <span class="current-value"><span id="c2-val">0.10</span> µF</span>
+                <label for="c2_slide">C2 (µF)</label>
+                <input type="number" id="c2_num" class="num-input" value="0.1" min="0.01" max="10" step="0.01" oninput="syncInputs('c2', 'num')">
             </div>
-            <input type="range" id="c2" min="0.01" max="10" step="0.01" value="0.1" oninput="updatePlot()">
+            <input type="range" id="c2_slide" min="0.01" max="10" step="0.01" value="0.1" oninput="syncInputs('c2', 'slide')">
         </div>
-    </div>
-
-    <div class="chart-container">
-        <canvas id="bodeChart"></canvas>
     </div>
 </div>
 
 <script>
-    // --- LOGICA JAVASCRIPT ---
     let chart;
 
-    // Elementi DOM per leggere i valori e aggiornare le etichette
-    const inputs = {
-        r1: document.getElementById('r1'),
-        c1: document.getElementById('c1'),
-        r2: document.getElementById('r2'),
-        c2: document.getElementById('c2')
-    };
-    const displays = {
-        r1: document.getElementById('r1-val'),
-        c1: document.getElementById('c1-val'),
-        r2: document.getElementById('r2-val'),
-        c2: document.getElementById('c2-val')
-    };
+    // Funzione per sincronizzare Slider e Input Numerico in modo bidirezionale
+    // parametro: 'r1', 'c1', ecc. | sorgente: 'slide' o 'num'
+    function syncInputs(param, source) {
+        const slideInput = document.getElementById(`${param}_slide`);
+        const numInput = document.getElementById(`${param}_num`);
+
+        if (source === 'slide') {
+            numInput.value = slideInput.value;
+        } else {
+            // Se l'utente digita un valore fuori range, lo forziamo entro i limiti impostati nel min/max dello slider
+            let val = parseFloat(numInput.value);
+            const min = parseFloat(slideInput.min);
+            const max = parseFloat(slideInput.max);
+            
+            if (!isNaN(val)) {
+                if (val < min) val = min;
+                if (val > max) val = max;
+                slideInput.value = val;
+            }
+        }
+        updatePlot();
+    }
 
     function calculateBodeData() {
-        // Leggi valori dagli slider
-        const R1 = parseFloat(inputs.r1.value);
-        const C1 = parseFloat(inputs.c1.value) * 1e-6; // Converti µF in Farad
-        const R2 = parseFloat(inputs.r2.value);
-        const C2 = parseFloat(inputs.c2.value) * 1e-6; // Converti µF in Farad
-
-        // Aggiorna i numeri visualizzati nell'interfaccia
-        displays.r1.textContent = R1;
-        displays.c1.textContent = C1.value; // Mostra il valore dello slider
-        // Fix per mostrare sempre 2 decimali sulla capacità
-        displays.c1.textContent = parseFloat(inputs.c1.value).toFixed(2);
-        displays.r2.textContent = R2;
-        displays.c2.textContent = parseFloat(inputs.c2.value).toFixed(2);
+        // Estraiamo i valori correnti direttamente dagli elementi sincronizzati
+        const R1 = parseFloat(document.getElementById('r1_slide').value);
+        const C1 = parseFloat(document.getElementById('c1_slide').value) * 1e-6;
+        const R2 = parseFloat(document.getElementById('r2_slide').value);
+        const C2 = parseFloat(document.getElementById('c2_slide').value) * 1e-6;
 
         const dataPoints = [];
-        // Genera 200 punti su scala logaritmica da 1 Hz a 1 MHz
         for (let i = 0; i <= 6; i += 0.03) {
             const freq = Math.pow(10, i);
-            const w = 2 * Math.PI * freq; // Frequenza angolare
+            const w = 2 * Math.PI * freq;
 
-            // Funzione di trasferimento complessa per filtro RC a 2 stadi (con effetto carico)
-            // H(s) = 1 / ( s^2(R1C1R2C2) + s(R1C1 + R2C2 + R1C2) + 1 )
+            // Funzione di trasferimento complessa (Modello esatto a due stadi con carico)
             const a = R1 * C1 * R2 * C2;
             const b = (R1 * C1 + R2 * C2 + R1 * C2);
             
-            // Reale e Immaginario del denominatore
             const denomReal = 1 - w*w * a;
             const denomImag = w * b;
             const denomMag2 = denomReal*denomReal + denomImag*denomImag;
 
-            // Magnitudo e conversione in dB
             const mag = 1 / Math.sqrt(denomMag2);
             const db = 20 * Math.log10(mag);
 
@@ -230,18 +211,15 @@
         return dataPoints;
     }
 
-    // Funzione chiamata ad ogni movimento dello slider
     function updatePlot() {
         if (chart) {
             chart.data.datasets[0].data = calculateBodeData();
-            chart.update('none'); // Aggiorna senza animazioni per massima fluidità
+            chart.update('none'); // Aggiornamento immediato e fluido
         }
     }
 
-    // --- Configurazione Iniziale Grafico Chart.js ---
+    // Configurazione Grafico Chart.js
     const ctx = document.getElementById('bodeChart').getContext('2d');
-    
-    // Crea gradiente per l'area sotto la curva
     const gradient = ctx.createLinearGradient(0, 0, 0, 400);
     gradient.addColorStop(0, 'rgba(0, 180, 216, 0.2)');
     gradient.addColorStop(1, 'rgba(0, 180, 216, 0)');
@@ -251,27 +229,26 @@
         data: {
             datasets: [{
                 label: 'Magnitudo (dB)',
-                data: calculateBodeData(), // Calcola dati iniziali
+                data: calculateBodeData(),
                 borderColor: '#00b4d8',
                 borderWidth: 3,
-                pointRadius: 0, // Nascondi i punti singoli
+                pointRadius: 0,
                 fill: true,
                 backgroundColor: gradient,
-                tension: 0.1 // Leggera curvatura
+                tension: 0.1
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false }, // Mostra tooltip all'avvicinarsi del mouse
+            interaction: { mode: 'index', intersect: false },
             scales: {
                 x: {
-                    type: 'logarithmic', // Scala Logaritmica fondamentale per Bode
+                    type: 'logarithmic',
                     title: { display: true, text: 'Frequenza (Hz)', color: '#a4a4a8', font: { size: 14 } },
                     ticks: {
                         color: '#a4a4a8',
                         callback: function(value) {
-                            // Etichette pulite per le decadi (1, 10, 100, 1k, 10k...)
                             const ticks = [1, 10, 100, 1000, 10000, 100000, 1000000];
                             if (ticks.includes(value)) {
                                 if (value >= 1000000) return '1M';
@@ -284,14 +261,14 @@
                 },
                 y: {
                     title: { display: true, text: 'Guadagno (dB)', color: '#a4a4a8', font: { size: 14 } },
-                    min: -80, // Limite inferiore fisso per dare prospettiva
+                    min: -80,
                     max: 5,
                     ticks: { color: '#a4a4a8', stepSize: 10 },
                     grid: { color: 'rgba(255, 255, 255, 0.05)' }
                 }
             },
             plugins: {
-                legend: { display: false }, // Nascondi legenda
+                legend: { display: false },
                 tooltip: {
                     backgroundColor: '#1a1a1e',
                     titleColor: '#00b4d8',
